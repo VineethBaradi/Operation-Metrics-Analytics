@@ -1,0 +1,68 @@
+/**
+A.	User Engagement: To measure the activeness of a user. Measuring if the user finds quality in a product/service.
+Your task: Calculate the weekly user engagement?
+**/
+
+SELECT
+  EXTRACT(WEEK FROM occurred_at) AS Weeknum, 
+  COUNT(DISTINCT user_id)
+FROM
+  tutorial.yammer_events
+GROUP BY
+  Weeknum
+  
+/**
+B.	User Growth: Amount of users growing over time for a product.
+Your task: Calculate the user growth for product?
+**/
+SELECT 
+        year, 
+        weeknum, 
+        new_activeusers,
+        SUM(new_activeusers) OVER(ORDER BY year,weeknum ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS Cum_activeusers
+FROM
+(   SELECT 
+        EXTRACT(year FROM a.activated_at) AS year,
+        EXTRACT(week FROM a.activated_at) AS weeknum,
+        COUNT(DISTINCT user_id) AS new_activeusers
+    FROM tutorial.yammer_users AS a
+    WHERE state = 'active'
+    GROUP BY Year, weeknum
+    ORDER BY Year, weeknum) AS B
+    
+/**
+C.	Weekly Engagement: To measure the activeness of a user. Measuring if the user finds quality in a product/service weekly.
+Your task: Calculate the weekly engagement per device?
+**/
+SELECT 
+    EXTRACT(year FROM occurred_at) AS Year, 
+    EXTRACT(week FROM occurred_at) AS weeknum , 
+    Device, 
+    COUNT(DISTINCT user_id) AS logins
+FROM tutorial.yammer_events
+WHERE event_type = 'engagement'
+GROUP BY 1, 2, 3
+ORDER BY 1, 2, 3
+
+
+/**
+D.	Email Engagement: Users engaging with the email service.
+Your task: Calculate the email engagement metrics?
+**/
+SELECT
+  100.0 * SUM(CASE WHEN Email_Cat = 'Email Opened' THEN 1 ELSE 0 END)/SUM(CASE WHEN Email_Cat = 'Email Sent' THEN 1 ELSE 0 END) AS EmailOpenRate,
+  100.0 * SUM(CASE WHEN Email_Cat = 'Email Clicked' THEN 1 ELSE 0 END)/SUM(CASE WHEN Email_Cat = 'Email Sent' THEN 1 ELSE 0 END)AS EmailClickRate
+  FROM(
+        SELECT *,
+        CASE 
+        WHEN action IN ('sent_weekly_digest','sent_reengagement_email') THEN ('Email Sent')
+        WHEN action IN ('email_open') THEN ('Email Opened')
+        WHEN action IN ('email_clickthrough') THEN ('Email Clicked')
+        END AS Email_Cat
+        FROM tutorial.yammer_emails
+       ) a
+
+
+
+
+
